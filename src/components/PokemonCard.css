@@ -1,0 +1,167 @@
+.pokemon-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.pokemon-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.pokemon-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  margin-right: 24px;
+}
+
+.pokemon-info {
+  flex: 1;
+}
+
+.pokemon-name {
+  font-size: 32px;
+  margin: 0 0 8px;
+  text-transform: capitalize;
+}
+
+.pokemon-number {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.pokemon-types {
+  display: flex;
+  gap: 8px;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section h3 {
+  font-size: 20px;
+  margin: 0 0 16px;
+  color: #333;
+}
+
+.abilities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ability {
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.hidden-ability {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.type-effectiveness {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.set-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.set-selector select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.set-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.moves ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.moves li {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.build-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-group h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #444;
+}
+
+.info-group p {
+  margin: 0;
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.ev-spread {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.ev-stat {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-name {
+  text-transform: uppercase;
+  font-size: 12px;
+  color: #666;
+}
+
+.stat-value {
+  font-weight: 500;
+}
+
+.tera-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
