@@ -35,16 +35,24 @@ export async function fetchPokemonFromAPI(pokemonName: string): Promise<PokeAPIP
 export async function searchPokemonInLocalFiles(pokemonName: string): Promise<{ generation: number; data: any } | null> {
   // Capitalize the first letter and make the rest lowercase
   const formattedName = pokemonName.charAt(0).toUpperCase() + pokemonName.slice(1).toLowerCase();
+  console.log('Searching for Pokemon with formatted name:', formattedName);
   
   for (const gen of GENERATIONS) {
     try {
-      const response = await fetch(`/data/gen${gen}.json`);
+      // Update the path to use the homepage path for GitHub Pages
+      const dataPath = `${process.env.PUBLIC_URL}/data/gen${gen}.json`;
+      
+      console.log(`Attempting to load data from: ${dataPath}`);
+      const response = await fetch(dataPath);
+      
       if (!response.ok) {
-        console.error(`Failed to load gen${gen}.json`);
+        console.error(`Failed to load gen${gen}.json - Status: ${response.status}`);
         continue;
       }
       
       const data: GenerationData = await response.json();
+      console.log(`Successfully loaded gen${gen}.json`);
+      console.log('Available Pokemon in this generation:', Object.keys(data).join(', '));
       
       // Check for exact match first
       if (data[formattedName]) {
@@ -59,14 +67,16 @@ export async function searchPokemonInLocalFiles(pokemonName: string): Promise<{ 
       
       if (variantKeys.length > 0) {
         console.log(`Found variant ${variantKeys[0]} in gen${gen}.json`);
-        // For now, return the first variant found
-        // TODO: Add UI to let user choose which variant they want
         return { generation: gen, data: data[variantKeys[0]] };
       }
+      
+      console.log(`${formattedName} not found in gen${gen}.json`);
     } catch (error) {
       console.error(`Error loading gen${gen}.json:`, error);
     }
   }
+  
+  console.log('Pokemon not found in any generation file');
   return null;
 }
 
@@ -103,8 +113,7 @@ export function calculateTypeEffectiveness(types: string[]): { weaknesses: Recor
 
 export async function getPokemonData(pokemonName: string): Promise<CombinedPokemonData> {
   try {
-    // Add logging to track the search process
-    console.log(`Searching for Pokemon: ${pokemonName}`);
+    console.log(`Starting search for Pokemon: ${pokemonName}`);
     
     const [apiData, localData] = await Promise.all([
       fetchPokemonFromAPI(pokemonName),
@@ -112,9 +121,11 @@ export async function getPokemonData(pokemonName: string): Promise<CombinedPokem
     ]);
 
     if (!localData) {
+      console.error(`No local data found for Pokemon: ${pokemonName}`);
       throw new Error(`No local data found for Pokemon: ${pokemonName}`);
     }
 
+    console.log('Successfully found both API and local data');
     const types = apiData.types.map(t => t.type.name);
     const { weaknesses, strengths } = calculateTypeEffectiveness(types);
 

@@ -15,6 +15,7 @@ function App() {
 
     setLoading(true);
     setError(null);
+    setPokemonData(null); // Clear the previous Pokemon data
 
     try {
       const data = await getPokemonData(searchTerm.toLowerCase());
