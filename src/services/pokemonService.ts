@@ -2,6 +2,7 @@ import { CombinedPokemonData, GenerationData, PokeAPIPokemon } from '../types/po
 
 const GENERATIONS = Array.from({ length: 9 }, (_, i) => i + 1).reverse();
 const BASE_API_URL = 'https://pokeapi.co/api/v2';
+const BASE_PUBLIC_URL = process.env.PUBLIC_URL || '';
 
 const TYPE_EFFECTIVENESS = {
   normal: { ghost: 0, rock: 0.5, steel: 0.5 },
@@ -24,6 +25,52 @@ const TYPE_EFFECTIVENESS = {
   fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 }
 };
 
+// Cache for Pokemon names
+let pokemonNamesCache: string[] | null = null;
+
+// Function to load all Pokemon names into cache
+export async function loadPokemonNames(): Promise<string[]> {
+  if (pokemonNamesCache !== null) {
+    return pokemonNamesCache;
+  }
+
+  const allNames = new Set<string>();
+
+  for (const gen of GENERATIONS) {
+    try {
+      const dataPath = `${BASE_PUBLIC_URL}/data/gen${gen}.json`;
+      const response = await fetch(dataPath);
+      
+      if (!response.ok) {
+        console.error(`Failed to load gen${gen}.json - Status: ${response.status}`);
+        continue;
+      }
+      
+      const data = await response.json();
+      Object.keys(data).forEach(name => allNames.add(name));
+      
+    } catch (error) {
+      console.error(`Error loading gen${gen}.json:`, error);
+    }
+  }
+
+  pokemonNamesCache = Array.from(allNames).sort();
+  return pokemonNamesCache;
+}
+
+// Function to get suggestions from cache
+export async function getPokemonSuggestions(input: string): Promise<string[]> {
+  const formattedInput = input.toLowerCase();
+  
+  // Ensure names are loaded
+  const allNames = await loadPokemonNames();
+  
+  // Filter names that start with the input
+  return allNames.filter(name => 
+    name.toLowerCase().startsWith(formattedInput)
+  );
+}
+
 export async function fetchPokemonFromAPI(pokemonName: string): Promise<PokeAPIPokemon> {
   const response = await fetch(`${BASE_API_URL}/pokemon/${pokemonName.toLowerCase()}`);
   if (!response.ok) {
@@ -33,44 +80,50 @@ export async function fetchPokemonFromAPI(pokemonName: string): Promise<PokeAPIP
 }
 
 export async function searchPokemonInLocalFiles(pokemonName: string): Promise<{ generation: number; data: any } | null> {
-  // Capitalize the first letter and make the rest lowercase
-  const formattedName = pokemonName.charAt(0).toUpperCase() + pokemonName.slice(1).toLowerCase();
-  console.log('Searching for Pokemon with formatted name:', formattedName);
+  const searchName = pokemonName.toLowerCase();
+  console.log('Searching for Pokemon with name:', searchName);
   
   for (const gen of GENERATIONS) {
     try {
-      // Update the path to use the homepage path for GitHub Pages
-      const dataPath = `${process.env.PUBLIC_URL}/data/gen${gen}.json`;
-      
+      const dataPath = `${BASE_PUBLIC_URL}/data/gen${gen}.json`;
       console.log(`Attempting to load data from: ${dataPath}`);
-      const response = await fetch(dataPath);
       
+      const response = await fetch(dataPath);
       if (!response.ok) {
         console.error(`Failed to load gen${gen}.json - Status: ${response.status}`);
         continue;
       }
       
-      const data: GenerationData = await response.json();
+      const data = await response.json();
       console.log(`Successfully loaded gen${gen}.json`);
-      console.log('Available Pokemon in this generation:', Object.keys(data).join(', '));
       
-      // Check for exact match first
-      if (data[formattedName]) {
-        console.log(`Found ${formattedName} in gen${gen}.json`);
-        return { generation: gen, data: data[formattedName] };
+      // Find the Pokemon name case-insensitively
+      const pokemonKey = Object.keys(data).find(key => key.toLowerCase() === searchName);
+      
+      if (pokemonKey) {
+        console.log(`Found ${pokemonKey} in gen${gen}.json`);
+        console.log('Pokemon data:', data[pokemonKey]);
+        return {
+          generation: gen,
+          data: data[pokemonKey]
+        };
       }
       
-      // Check for variant names (e.g., "Pokemon-Form")
-      const variantKeys = Object.keys(data).filter(key => 
-        key.toLowerCase().startsWith(formattedName.toLowerCase() + '-')
+      // Check for variant names case-insensitively
+      const variantKey = Object.keys(data).find(key => 
+        key.toLowerCase().startsWith(searchName + '-')
       );
       
-      if (variantKeys.length > 0) {
-        console.log(`Found variant ${variantKeys[0]} in gen${gen}.json`);
-        return { generation: gen, data: data[variantKeys[0]] };
+      if (variantKey) {
+        console.log(`Found variant ${variantKey} in gen${gen}.json`);
+        console.log('Pokemon variant data:', data[variantKey]);
+        return {
+          generation: gen,
+          data: data[variantKey]
+        };
       }
       
-      console.log(`${formattedName} not found in gen${gen}.json`);
+      console.log(`${searchName} not found in gen${gen}.json`);
     } catch (error) {
       console.error(`Error loading gen${gen}.json:`, error);
     }
@@ -113,28 +166,36 @@ export function calculateTypeEffectiveness(types: string[]): { weaknesses: Recor
 
 export async function getPokemonData(pokemonName: string): Promise<CombinedPokemonData> {
   try {
-    console.log(`Starting search for Pokemon: ${pokemonName}`);
+    console.log('Fetching data for Pokemon:', pokemonName);
     
-    const [apiData, localData] = await Promise.all([
-      fetchPokemonFromAPI(pokemonName),
-      searchPokemonInLocalFiles(pokemonName)
-    ]);
-
+    // Fetch data from PokeAPI
+    const apiData = await fetchPokemonFromAPI(pokemonName);
+    console.log('API data fetched successfully');
+    
+    // Search in local files
+    const localData = await searchPokemonInLocalFiles(pokemonName);
     if (!localData) {
-      console.error(`No local data found for Pokemon: ${pokemonName}`);
-      throw new Error(`No local data found for Pokemon: ${pokemonName}`);
+      console.error('No local data found for Pokemon:', pokemonName);
+    } else {
+      console.log('Local data found:', localData);
     }
-
-    console.log('Successfully found both API and local data');
+    
+    // Extract types from API data
     const types = apiData.types.map(t => t.type.name);
+    
+    // Calculate type effectiveness
     const { weaknesses, strengths } = calculateTypeEffectiveness(types);
-
-    return {
+    
+    // Create the combined data object
+    const combinedData: CombinedPokemonData = {
       apiData,
-      setData: localData.data,
+      setData: localData?.data || {},
       weaknesses,
       strengths
     };
+    
+    console.log('Combined data:', combinedData);
+    return combinedData;
   } catch (error) {
     console.error('Error in getPokemonData:', error);
     throw error;
